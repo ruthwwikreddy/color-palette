@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monochrome Palette Extractor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Color Thief library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .card-bg {
+            background-color: #111111;
+            border: 1px solid #222222;
+        }
+
+        /* BW Accent Button */
+        .bw-action-btn {
+            background-color: #ffffff;
+            color: #000000;
+            transition: all 0.2s ease;
+        }
+
+        .bw-action-btn:hover {
+            background-color: #e5e5e5;
+            transform: translateY(-1px);
+        }
+
+        .bw-action-btn:active {
+            transform: translateY(0px) scale(0.98);
+        }
+
+        /* Custom Range Slider Styling */
+        input[type="range"] {
+            accent-color: #ffffff;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #333;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center p-6 md:p-12">
+
+    <!-- Header -->
+    <div class="w-full max-w-6xl mb-8">
+        <h1 class="text-3xl font-bold tracking-tight">Color Palette Extractor</h1>
+        <p class="text-zinc-500 mt-1">Extract beautiful color palettes from any image.</p>
+    </div>
+
+    <!-- Main Container -->
+    <div class="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        <!-- Left Panel: Controls -->
+        <div class="card-bg rounded-3xl p-6 flex flex-col gap-8 shadow-2xl">
+            
+            <!-- Upload Box -->
+            <div id="drop-zone" class="relative group cursor-pointer overflow-hidden rounded-2xl border-2 border-dashed border-zinc-800 hover:border-zinc-500 transition-all aspect-video flex items-center justify-center bg-zinc-900/50">
+                <img id="preview-img" src="" class="hidden w-full h-full object-contain" />
+                <div id="upload-placeholder" class="text-center">
+                    <svg class="w-10 h-10 text-zinc-700 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                    <p class="text-zinc-500 text-sm font-medium uppercase tracking-widest text-[10px]">Upload Image</p>
+                </div>
+                <input type="file" id="file-input" class="hidden" accept="image/*" />
+            </div>
+
+            <!-- Slider -->
+            <div class="space-y-4">
+                <div class="flex justify-between items-center">
+                    <label class="text-xs font-bold uppercase tracking-widest text-zinc-400">Number of colors</label>
+                    <span id="color-count-val" class="text-xs font-bold bg-white text-black px-2 py-1 rounded">6</span>
+                </div>
+                <input type="range" id="color-count" min="2" max="10" value="6" class="w-full h-1 bg-zinc-800 rounded-lg appearance-none cursor-pointer">
+            </div>
+
+            <!-- Format Toggle -->
+            <div class="space-y-3">
+                <label class="text-xs font-bold uppercase tracking-widest text-zinc-400">Color format</label>
+                <div class="grid grid-cols-3 gap-2 bg-zinc-900/80 p-1 rounded-xl border border-zinc-800">
+                    <button class="format-btn active py-2 rounded-lg text-[10px] font-bold transition-all bg-white text-black" data-format="hex">HEX</button>
+                    <button class="format-btn py-2 rounded-lg text-[10px] font-bold transition-all text-zinc-500 hover:text-white" data-format="rgb">RGB</button>
+                    <button class="format-btn py-2 rounded-lg text-[10px] font-bold transition-all text-zinc-500 hover:text-white" data-format="hsl">HSL</button>
+                </div>
+            </div>
+
+            <!-- Monochrome Action Button -->
+            <button id="extract-btn" class="bw-action-btn w-full py-4 rounded-2xl font-bold uppercase tracking-widest text-sm shadow-xl">
+                Re-extract Colors
+            </button>
+
+            <p class="text-[10px] text-zinc-600 text-center uppercase tracking-widest">Click color to copy value</p>
+        </div>
+
+        <!-- Right Panel: Results -->
+        <div class="card-bg rounded-3xl p-6 flex flex-col h-full min-h-[500px]">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold tracking-tight">Palette</h2>
+                <button id="clear-btn" class="text-[10px] font-bold uppercase tracking-widest text-zinc-500 hover:text-white border border-zinc-800 px-4 py-2 rounded-full transition-colors">Clear</button>
+            </div>
+
+            <!-- Results Grid -->
+            <div id="palette-grid" class="grid grid-cols-2 gap-4 flex-grow overflow-y-auto custom-scrollbar pr-2 content-start">
+                <div class="col-span-2 text-center py-20 text-zinc-800 font-bold uppercase tracking-widest text-xs italic">Drop image to start...</div>
+            </div>
+
+            <!-- Bottom Summary Bar -->
+            <div id="summary-bar" class="h-10 w-full mt-6 rounded-xl flex overflow-hidden border border-zinc-900 shadow-inner">
+                <!-- Color segments will appear here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="fixed bottom-10 left-1/2 -translate-x-1/2 bg-white text-black px-8 py-3 rounded-full font-bold text-xs uppercase tracking-widest shadow-2xl transition-opacity opacity-0 pointer-events-none z-50">
+        Copied to clipboard
+    </div>
+
+    <script>
+        const colorThief = new ColorThief();
+        const fileInput = document.getElementById('file-input');
+        const previewImg = document.getElementById('preview-img');
+        const placeholder = document.getElementById('upload-placeholder');
+        const dropZone = document.getElementById('drop-zone');
+        const extractBtn = document.getElementById('extract-btn');
+        const paletteGrid = document.getElementById('palette-grid');
+        const summaryBar = document.getElementById('summary-bar');
+        const countSlider = document.getElementById('color-count');
+        const countVal = document.getElementById('color-count-val');
+        const formatBtns = document.querySelectorAll('.format-btn');
+        const clearBtn = document.getElementById('clear-btn');
+        const toast = document.getElementById('toast');
+
+        let currentFormat = 'hex';
+        let currentPalette = [];
+
+        // --- Logic: File Management ---
+        dropZone.onclick = () => fileInput.click();
+
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    previewImg.src = event.target.result;
+                    previewImg.classList.remove('hidden');
+                    placeholder.classList.add('hidden');
+                    previewImg.onload = () => processImage();
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+
+        // --- Logic: Extraction ---
+        function processImage() {
+            if (!previewImg.src || previewImg.src === "") return;
+            const count = parseInt(countSlider.value);
+            // Get actual colors from the image
+            currentPalette = colorThief.getPalette(previewImg, count);
+            renderPalette();
+        }
+
+        // --- Logic: Conversions ---
+        function rgbToHex(r, g, b) {
+            return "#" + [r, g, b].map(x => x.toString(16).padStart(2, '0')).join('').toUpperCase();
+        }
+
+        function rgbToHsl(r, g, b) {
+            r /= 255, g /= 255, b /= 255;
+            const max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            if (max === min) h = s = 0;
+            else {
+                const d = max - min;
+                s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+                switch (max) {
+                    case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                    case g: h = (b - r) / d + 2; break;
+                    case b: h = (r - g) / d + 4; break;
+                }
+                h /= 6;
+            }
+            return `HSL(${Math.round(h*360)}, ${Math.round(s*100)}%, ${Math.round(l*100)}%)`;
+        }
+
+        // --- Logic: UI Rendering ---
+        function renderPalette() {
+            paletteGrid.innerHTML = '';
+            summaryBar.innerHTML = '';
+
+            currentPalette.forEach(rgb => {
+                const [r, g, b] = rgb;
+                const hex = rgbToHex(r, g, b);
+                const rgbStr = `RGB(${r}, ${g}, ${b})`;
+                const hslStr = rgbToHsl(r, g, b);
+
+                let displayVal = hex;
+                if (currentFormat === 'rgb') displayVal = rgbStr;
+                if (currentFormat === 'hsl') displayVal = hslStr;
+
+                // Create Card
+                const card = document.createElement('div');
+                card.className = "rounded-2xl p-4 flex flex-col justify-end h-28 cursor-pointer hover:scale-[1.03] transition-all border border-white/5 shadow-lg";
+                card.style.backgroundColor = hex;
+                
+                // Smart Contrast Text
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                const textColor = brightness > 140 ? 'text-black' : 'text-white';
+                const subColor = brightness > 140 ? 'text-black/50' : 'text-white/40';
+
+                card.innerHTML = `
+                    <span class="font-bold text-xs ${textColor} truncate">${displayVal}</span>
+                    <span class="text-[9px] font-bold ${subColor} truncate tracking-tighter">${currentFormat === 'hex' ? rgbStr : hex}</span>
+                `;
+
+                card.onclick = () => {
+                    navigator.clipboard.writeText(displayVal);
+                    toast.innerText = `Copied: ${displayVal}`;
+                    toast.classList.remove('opacity-0');
+                    setTimeout(() => toast.classList.add('opacity-0'), 1500);
+                };
+
+                paletteGrid.appendChild(card);
+
+                // Add to Summary Strip
+                const strip = document.createElement('div');
+                strip.style.backgroundColor = hex;
+                strip.className = "flex-grow h-full";
+                summaryBar.appendChild(strip);
+            });
+        }
+
+        // --- Event Handling ---
+        countSlider.oninput = () => countVal.innerText = countSlider.value;
+        extractBtn.onclick = processImage;
+
+        formatBtns.forEach(btn => {
+            btn.onclick = () => {
+                formatBtns.forEach(b => {
+                    b.classList.remove('bg-white', 'text-black');
+                    b.classList.add('text-zinc-500');
+                });
+                btn.classList.add('bg-white', 'text-black');
+                btn.classList.remove('text-zinc-500');
+                currentFormat = btn.dataset.format;
+                if (currentPalette.length) renderPalette();
+            };
+        });
+
+        clearBtn.onclick = () => {
+            previewImg.src = "";
+            previewImg.classList.add('hidden');
+            placeholder.classList.remove('hidden');
+            paletteGrid.innerHTML = '<div class="col-span-2 text-center py-20 text-zinc-800 font-bold uppercase tracking-widest text-xs italic">Drop image to start...</div>';
+            summaryBar.innerHTML = '';
+            fileInput.value = '';
+        };
+
+    </script>
+</body>
+</html>
